@@ -187,6 +187,11 @@ void BlockToONNX(
     auto n = ctx.block->addInput()->copyMetadata(input);
     env[input] = n;
   }
+
+  // for (size_t i = 1; i < ctx.block->inputs().size(); ++i) {
+  //   ctx.block->inputs()[i]->setType(new_block->owningNode()->inputs()[i]->type());
+  // }
+
   // Put the new outputs in our environment map, and copy the type from the
   // input graph if they were not set by the symbolic. This is called only
   // with results of symbolic call (not for nodes that are just cloned).

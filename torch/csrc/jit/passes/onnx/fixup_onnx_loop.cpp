@@ -55,6 +55,10 @@ void FixupONNXLoops(Block* block) {
       Value* i = sub_block->inputs()[0];
       i->setType(CompleteTensorType::fromNumberType(IntType::get()));
 
+      for (size_t i = 2; i<sub_block->inputs().size(); ++i) {
+        sub_block->inputs()[i]->setType(loop_node->inputs()[i]->type());
+      }
+
       // add cast to condition input inside the loop.
       Value* next_cond_val = sub_block->outputs()[0];
       if (IsCondCastRequired(next_cond_val))

@@ -69,6 +69,7 @@ class ShapePropagator {
   void PropagateShapeOnBlock(Block* block, bool insert_expands = true) {
     for (Node* node : block->nodes()) {
       try {
+        // std::cout << *(block->owningGraph());
         PropagateShapeOnNode(node, insert_expands);
       } catch (propagation_error& e) {
         setUnshapedType(node);
@@ -456,6 +457,14 @@ class ShapePropagator {
   }
 
   void PropagateShapeOnNode(Node* node, bool insert_expands = true) {
+    if (node->kind() != prim::Loop)
+    {
+      if (std::all_of(
+              node->outputs().begin(),
+              node->outputs().end(),
+              [](Value* v) { return v->type()->cast<CompleteTensorType>() != nullptr; }))
+        return;
+    }    
     // Certain ops like resize_ change the input tensors size. Because our
     // analysis is flow invariant, we set any Tensor that can alias a resized
     // Tensor to the base Tensor Type without size information.
@@ -513,13 +522,18 @@ class ShapePropagator {
             typ->isSubtypeOf(BoolType::get())) {
           node->output()->setType(
               DimensionedTensorType::create(at::kLong, at::kCPU, 0));
+              // CompleteTensorType::create(at::kLong, at::kCPU, {}));
         } else if (node->input()->type()->isSubtypeOf(FloatType::get())) {
           node->output()->setType(
               DimensionedTensorType::create(at::kDouble, at::kCPU, 0));
+              // CompleteTensorType::create(at::kDouble, at::kCPU, {}));
         }
         return;
       }
       case aten::tensor: {
+        // if (node->output()->type()->isSubtypeOf(CompleteTensorType::get())) {
+        //   return;
+        // }    
         return propagateTorchTensorShape(node);
       }
       case prim::TupleConstruct: {
@@ -541,6 +555,9 @@ class ShapePropagator {
         return;
       }
       case prim::Constant: {
+        // if (node->output()->type()->isSubtypeOf(CompleteTensorType::get())) {
+        //   return;
+        // }    
         if (node->output()->type()->isSubtypeOf(TensorType::get())) {
           node->output()->inferTypeFrom(node->t(attr::value));
         }

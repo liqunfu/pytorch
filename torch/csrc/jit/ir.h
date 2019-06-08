@@ -364,6 +364,8 @@ struct TORCH_API Node {
     return inputs_.at(0);
   }
   Value* output() {
+    if (outputs_.size() != 1)
+      AT_ASSERT(outputs_.size() != 1);
     AT_ASSERT(outputs_.size() == 1);
     return outputs_.at(0);
   }

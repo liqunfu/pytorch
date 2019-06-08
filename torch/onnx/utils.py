@@ -615,8 +615,15 @@ def _run_symbolic_function(g, n, inputs, env, operator_export_type=OperatorExpor
                 new_op_outputs = g.op(op_name, *inputs, outputs=n.outputsSize())
                 new_node = new_op_outputs[0].node() if n.outputsSize() > 1 else new_op_outputs.node()
                 for b in n.blocks():
+                    input_types = [i.type() for i in inputs]
+                    for i, b_i in enumerate(b.inputs()):
+                        if i == 0:
+                            continue
+                        b_i.setType(input_types[i+1])
                     new_block = new_node.addBlock()
                     torch._C._jit_pass_onnx_block(b, new_block, operator_export_type, env)
+
+                    print(new_block.inputs())
                 return new_op_outputs
             else:
                 # TODO: we sould lift prim's symbolic out

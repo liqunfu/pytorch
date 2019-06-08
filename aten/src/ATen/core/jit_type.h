@@ -140,6 +140,8 @@ public:
   template<typename T>
   std::shared_ptr<T> expect() {
     auto r = cast<T>();
+    if (!r)
+      AT_ASSERT(r);
     AT_ASSERT(r);
     return r;
   }

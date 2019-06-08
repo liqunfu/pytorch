@@ -219,7 +219,10 @@ prod = _reduce_op_symbolic('ReduceProd')
 
 @parse_args('v', 'i')
 def cumsum(g, input, dim):
-    return g.op("ATen", input, operator_s="cumsum", dim_i=dim)
+    # dim_value = torch.LongTensor(dim)
+    # dim_input = g.op("Constant", value_t=dim_value)
+
+    return g.op("CumSum", input, torch.LongTensor([dim]))
 
 
 def _sample_dirichlet(g, self, generator):
@@ -283,6 +286,27 @@ def size(g, self, dim):
     full_shape = g.op("Shape", self)
     return select(g, full_shape, g.op("Constant", value_t=torch.tensor([0])), dim)
 
+def _unpack_list(list_value):
+    list_node = list_value.node()
+    assert list_node.kind() == "prim::ListConstruct"
+    return list(list_node.inputs())
+
+def _is_packed_list(list_value): 
+    list_node = list_value.node() 
+    return list_node.kind() == "prim::ListConstruct"
+
+def index(g, self, index):
+    if _is_packed_list(index):
+        indices = _unpack_list(index)
+    else:
+        indices = [index]
+
+    if len(indices) == 1:
+        if indices[0].type().scalarType() == "Byte":
+            indices[0] = squeeze(g, nonzero(g, indices[0]), dim=1)
+        return index_select(g, self, 0, indices[0])
+    else:
+        raise NotImplementedError("Unsupported aten::index operator with more than 1 indices tensor. ")
 
 @parse_args('v', 'i', 'i')
 def transpose(g, self, dim0, dim1):
@@ -290,7 +314,7 @@ def transpose(g, self, dim0, dim1):
         return self
 
     # NB: Transpose in ONNX is actually a Permute
-    if self.type().kind() == "CompleteTensorType":
+    if self.type().kind() == "DimensionedTensorType" or self.type().kind() == "CompleteTensorType":
         axes = list(range(self.type().dim()))
         axes[dim0], axes[dim1] = axes[dim1], axes[dim0]
         return g.op("Transpose", self, perm_i=axes)
@@ -334,6 +358,12 @@ def prim_ConstantSplit(g, self, split_size, dim):
 # TODO: Once we have proper scoping, stop reimplementing chunk, delete this
 # method, and use the desugared version
 def prim_ConstantChunk(g, self, chunks, dim):
+    print(self.type().kind())
+    if self.type().kind() != "CompleteTensorType":
+        print("a")
+        # s = g.op("Shape", self)
+        # len = g.op("Slice", s, dim)
+        # g.op("Slice", self, split_i=splits, axis_i=dim, outputs=len(splits))
     split_size = (self.type().sizes()[dim] + chunks - 1) // chunks
     return prim_ConstantSplit(g, self, split_size, dim)
 

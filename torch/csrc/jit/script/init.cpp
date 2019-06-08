@@ -182,7 +182,7 @@ static void setInputTensorTypes(Graph& g, const Stack& stack) {
   AT_ASSERT(stack.size() == g.inputs().size());
   for (size_t i = 0; i < stack.size(); ++i) {
     g.inputs().at(i)->setType(
-        DimensionedTensorType::create(stack.at(i).toTensor()));
+        CompleteTensorType::create(stack.at(i).toTensor()));
   }
 }
 
@@ -206,6 +206,7 @@ static std::shared_ptr<Graph> _propagate_and_assign_input_and_output_shapes(
   auto retval = graph.copy();
   if (propagate) {
     setInputTensorTypes(*retval, fmap<IValue>(inputs));
+    // std::cout << graph;
     PropagateInputShapes(retval);
   }
   AT_ASSERT(retval->inputs().size() == inputs.size());
