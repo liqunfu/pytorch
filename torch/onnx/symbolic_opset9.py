@@ -961,6 +961,9 @@ def selu(g, input):
 
 @parse_args('v', 'i', 'v')
 def index_select(g, self, dim, index):
+    if index.type().kind() == "CompleteTensorType" or index.type().kind() == "DimensionedTensorType":
+        if index.type().dim() == 0:
+            index = g.op("Reshape", index, g.op("Constant", value_t=torch.LongTensor([-1])))
     return g.op("Gather", self, index, axis_i=dim)
 
 

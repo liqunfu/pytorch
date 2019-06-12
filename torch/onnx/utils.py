@@ -623,7 +623,7 @@ def _run_symbolic_function(g, n, inputs, env, operator_export_type=OperatorExpor
                     new_block = new_node.addBlock()
                     torch._C._jit_pass_onnx_block(b, new_block, operator_export_type, env)
 
-                    print(new_block.inputs())
+                    #print(new_block.inputs())
                 return new_op_outputs
             else:
                 # TODO: we sould lift prim's symbolic out
