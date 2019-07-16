@@ -55,10 +55,24 @@ void FixupONNXLoops(Block* block) {
       Value* i = sub_block->inputs()[0];
       i->setType(CompleteTensorType::fromNumberType(IntType::get()));
 
+      // set type for the rest of sub_block's inputs
+      for (size_t i = 2; i<sub_block->inputs().size(); ++i) {
+        sub_block->inputs()[i]->setType(loop_node->inputs()[i]->type());
+      }
+
       // add cast to condition input inside the loop.
       Value* next_cond_val = sub_block->outputs()[0];
       if (IsCondCastRequired(next_cond_val))
         InsertCastForCond(next_cond_val, graph, sub_block->return_node());
+    }
+    else if (node->kind() == ::c10::onnx::If) {
+      auto* if_node = node;
+      auto* graph = if_node->owningGraph();
+
+      // add cast to condition input outside the loop.
+      Value* cond_val = if_node->inputs()[0];
+      if (IsCondCastRequired(cond_val))
+        InsertCastForCond(cond_val, graph, if_node);
     }
     for (Block* block : node->blocks()) {
       FixupONNXLoops(block);
